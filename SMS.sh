@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Database connection details
-hostname="your_hostname"
-port="your_port"
-username="your_username"
-password="your_password"
-dbname="your_database_name"
+hostname="Localhost"
+port="3306"
+username="demo_aash"
+password="********"
+dbname="demo_phptest"
 
 # Function to display menu options
 display_menu() {
