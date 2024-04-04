@@ -1,5 +1,66 @@
 #!/bin/bash
 
+# Function to validate a date
+vvalidate_date() {
+    local input_date=$1
+    local format_regex="^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    local leap_year=false
+
+    if ! [[ $input_date =~ $format_regex ]]; then
+        echo "Invalid date format. Please enter in YYYY-MM-DD format."
+        return 1
+    fi
+
+    local current_year=$(date +%Y)
+    local year=$(echo $input_date | cut -d '-' -f 1)
+    local month=$(echo $input_date | cut -d '-' -f 2)
+    local day=$(echo $input_date | cut -d '-' -f 3)
+
+    # Calculate age
+    local age=$((current_year - year))
+
+    if (( $age < 3 )); then
+        echo "Age must be 3 years or older."
+        return 1
+    fi
+
+    if (( $year % 4 == 0 && ($year % 100 != 0 || $year % 400 == 0) )); then
+        leap_year=true
+    fi
+
+    case $month in
+        01|03|05|07|08|10|12)
+            if (( $day < 1 || $day > 31 )); then
+                echo "Invalid day for the given month. Day should be between 1 and 31."
+                return 1
+            fi
+            ;;
+        04|06|09|11)
+            if (( $day < 1 || $day > 30 )); then
+                echo "Invalid day for the given month. Day should be between 1 and 30."
+                return 1
+            fi
+            ;;
+        02)
+            if $leap_year; then
+                if (( $day < 1 || $day > 29 )); then
+                    echo "Invalid day for the given month (February in a leap year). Day should be between 1 and 29."
+                    return 1
+                fi
+            else
+                if (( $day < 1 || $day > 28 )); then
+                    echo "Invalid day for the given month (February in a non-leap year). Day should be between 1 and 28."
+                    return 1
+                fi
+            fi
+            ;;
+        *)
+            echo "Invalid month. Month should be between 01 and 12."
+            return 1
+            ;;
+    esac
+}
+
 # Database connection details
 hostname="Localhost"
 port="3306"
@@ -88,12 +149,26 @@ add_student() {
         echo "Full name cannot be empty."
         read -p "Enter full name: " full_name
     done
-    read -p "Enter phone number: " phone_number
-    while [ -z "$phone_number" ]; do
-        echo "Phone number cannot be empty."
-        read -p "Enter phone number: " phone_number
+
+    # Validate phone number (must be numeric)
+    while true; do
+        read -p "Enter phone number (numbers only): " phone_number
+        if [[ "$phone_number" =~ ^[0-9]+$ ]]; then
+            break
+        else
+            echo "Invalid phone number. Please enter numbers only."
+        fi
     done
-    read -p "Enter date of birth (YYYY-MM-DD): " dob
+
+    # Validate date of birth format (YYYY-MM-DD)
+    while true; do
+        read -p "Enter date of birth (YYYY-MM-DD): " dob
+        validate_date "$dob"
+        if [ $? -eq 0 ]; then
+            break
+        fi
+    done
+
     read -p "Enter mother tongue: " mother_tongue
     read -p "Enter blood group: " blood_group
     read -p "Enter mother's name: " mother_name
