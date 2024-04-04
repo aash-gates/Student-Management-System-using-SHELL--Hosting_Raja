@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Function to validate a date
-vvalidate_date() {
+validate_date() {
     local input_date=$1
     local format_regex="^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
     local leap_year=false
@@ -149,8 +149,8 @@ add_student() {
         echo "Full name cannot be empty."
         read -p "Enter full name: " full_name
     done
-
-    # Validate phone number (must be numeric)
+    
+    # Validate phone number (numbers only)
     while true; do
         read -p "Enter phone number (numbers only): " phone_number
         if [[ "$phone_number" =~ ^[0-9]+$ ]]; then
@@ -160,7 +160,7 @@ add_student() {
         fi
     done
 
-    # Validate date of birth format (YYYY-MM-DD)
+    # Validate date of birth format (YYYY-MM-DD) and age restriction
     while true; do
         read -p "Enter date of birth (YYYY-MM-DD): " dob
         validate_date "$dob"
@@ -170,51 +170,37 @@ add_student() {
     done
 
     read -p "Enter mother tongue: " mother_tongue
+    while [ -z "$mother_tongue" ]; do
+        echo "Mother tongue cannot be empty."
+        read -p "Enter mother tongue: " mother_tongue
+    done
+    
     read -p "Enter blood group: " blood_group
-    read -p "Enter mother's name: " mother_name
-    read -p "Enter father's name: " father_name
-    read -p "Enter nationality: " nationality
+    while [ -z "$blood_group" ]; do
+        echo "Blood group cannot be empty."
+        read -p "Enter blood group: " blood_group
+    done
 
-    # Formulate the SQL query with only non-null fields
-    sql_query="INSERT INTO StudentRecords (full_name, phone_number"
-    if [ -n "$dob" ]; then
-        sql_query+=", dob"
-    fi
-    if [ -n "$mother_tongue" ]; then
-        sql_query+=", mother_tongue"
-    fi
-    if [ -n "$blood_group" ]; then
-        sql_query+=", blood_group"
-    fi
-    if [ -n "$mother_name" ]; then
-        sql_query+=", mother_name"
-    fi
-    if [ -n "$father_name" ]; then
-        sql_query+=", father_name"
-    fi
-    if [ -n "$nationality" ]; then
-        sql_query+=", nationality"
-    fi
-    sql_query+=") VALUES ('$full_name', '$phone_number'"
-    if [ -n "$dob" ]; then
-        sql_query+=",'$dob'"
-    fi
-    if [ -n "$mother_tongue" ]; then
-        sql_query+=",'$mother_tongue'"
-    fi
-    if [ -n "$blood_group" ]; then
-        sql_query+=",'$blood_group'"
-    fi
-    if [ -n "$mother_name" ]; then
-        sql_query+=",'$mother_name'"
-    fi
-    if [ -n "$father_name" ]; then
-        sql_query+=",'$father_name'"
-    fi
-    if [ -n "$nationality" ]; then
-        sql_query+=",'$nationality'"
-    fi
-    sql_query+=");"
+    read -p "Enter mother's name: " mother_name
+    while [ -z "$mother_name" ]; do
+        echo "Mother's name cannot be empty."
+        read -p "Enter mother's name: " mother_name
+    done
+    
+    read -p "Enter father's name: " father_name
+    while [ -z "$father_name" ]; do
+        echo "Father's name cannot be empty."
+        read -p "Enter father's name: " father_name
+    done
+    
+    read -p "Enter nationality: " nationality
+    while [ -z "$nationality" ]; do
+        echo "Nationality cannot be empty."
+        read -p "Enter nationality: " nationality
+    done
+
+    # Formulate the SQL query with all fields
+    sql_query="INSERT INTO StudentRecords (full_name, phone_number, dob, mother_tongue, blood_group, mother_name, father_name, nationality) VALUES ('$full_name', '$phone_number', '$dob', '$mother_tongue', '$blood_group', '$mother_name', '$father_name', '$nationality');"
 
     # Execute the SQL query
     mysql -h "$hostname" -P "$port" -u "$username" -p"$password" "$dbname" -e "$sql_query"
@@ -242,43 +228,67 @@ edit_student() {
     
     # Prompt user for new details
     read -p "Enter new full name [$current_full_name]: " new_full_name
-    read -p "Enter new phone number [$current_phone_number]: " new_phone_number
-    read -p "Enter new date of birth (YYYY-MM-DD) [$current_dob]: " new_dob
-    read -p "Enter new mother tongue [$current_mother_tongue]: " new_mother_tongue
-    read -p "Enter new blood group [$current_blood_group]: " new_blood_group
-    read -p "Enter new mother's name [$current_mother_name]: " new_mother_name
-    read -p "Enter new father's name [$current_father_name]: " new_father_name
-    read -p "Enter new nationality [$current_nationality]: " new_nationality
+    while [ -z "$new_full_name" ]; do
+        echo "Full name cannot be empty."
+        read -p "Enter new full name [$current_full_name]: " new_full_name
+    done
+    
+    # Validate phone number (numbers only)
+    while true; do
+        read -p "Enter new phone number (numbers only) [$current_phone_number]: " new_phone_number
+        if [[ "$new_phone_number" =~ ^[0-9]+$ ]]; then
+            break
+        else
+            echo "Invalid phone number. Please enter numbers only."
+        fi
+    done
 
-    # Formulate the SQL query with only non-null fields
-    sql_query="UPDATE StudentRecords SET"
-    if [ -n "$new_full_name" ]; then
-        sql_query+=" full_name='$new_full_name',"
-    fi
-    if [ -n "$new_phone_number" ]; then
-        sql_query+=" phone_number='$new_phone_number',"
-    fi
-    if [ -n "$new_dob" ]; then
-        sql_query+=" dob='$new_dob',"
-    fi
-    if [ -n "$new_mother_tongue" ]; then
-        sql_query+=" mother_tongue='$new_mother_tongue',"
-    fi
-    if [ -n "$new_blood_group" ]; then
-        sql_query+=" blood_group='$new_blood_group',"
-    fi
-    if [ -n "$new_mother_name" ]; then
-        sql_query+=" mother_name='$new_mother_name',"
-    fi
-    if [ -n "$new_father_name" ]; then
-        sql_query+=" father_name='$new_father_name',"
-    fi
-    if [ -n "$new_nationality" ]; then
-        sql_query+=" nationality='$new_nationality',"
-    fi
-    # Remove the trailing comma
-    sql_query=${sql_query%,}
-    sql_query+=" WHERE student_id=$student_id;"
+    # Validate date of birth format (YYYY-MM-DD) and age restriction
+    while true; do
+        read -p "Enter new date of birth (YYYY-MM-DD) [$current_dob]: " new_dob
+        if [ -z "$new_dob" ]; then
+            new_dob=$current_dob
+            break
+        else
+            validate_date "$new_dob"
+            if [ $? -eq 0 ]; then
+                break
+            fi
+        fi
+    done
+
+    read -p "Enter new mother tongue [$current_mother_tongue]: " new_mother_tongue
+    while [ -z "$new_mother_tongue" ]; do
+        echo "Mother tongue cannot be empty."
+        read -p "Enter new mother tongue [$current_mother_tongue]: " new_mother_tongue
+    done
+    
+    read -p "Enter new blood group [$current_blood_group]: " new_blood_group
+    while [ -z "$new_blood_group" ]; do
+        echo "Blood group cannot be empty."
+        read -p "Enter new blood group [$current_blood_group]: " new_blood_group
+    done
+
+    read -p "Enter new mother's name [$current_mother_name]: " new_mother_name
+    while [ -z "$new_mother_name" ]; do
+        echo "Mother's name cannot be empty."
+        read -p "Enter new mother's name [$current_mother_name]: " new_mother_name
+    done
+    
+    read -p "Enter new father's name [$current_father_name]: " new_father_name
+    while [ -z "$new_father_name" ]; do
+        echo "Father's name cannot be empty."
+        read -p "Enter new father's name [$current_father_name]: " new_father_name
+    done
+    
+    read -p "Enter new nationality [$current_nationality]: " new_nationality
+    while [ -z "$new_nationality" ]; do
+        echo "Nationality cannot be empty."
+        read -p "Enter new nationality [$current_nationality]: " new_nationality
+    done
+
+    # Formulate the SQL query with all fields
+    sql_query="UPDATE StudentRecords SET full_name='$new_full_name', phone_number='$new_phone_number', dob='$new_dob', mother_tongue='$new_mother_tongue', blood_group='$new_blood_group', mother_name='$new_mother_name', father_name='$new_father_name', nationality='$new_nationality' WHERE student_id=$student_id;"
 
     # Execute the SQL query
     mysql -h "$hostname" -P "$port" -u "$username" -p"$password" "$dbname" -e "$sql_query"
